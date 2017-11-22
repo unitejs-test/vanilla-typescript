@@ -1,0 +1,55 @@
+language: node_js
+sudo: required
+services:
+  - docker
+node_js:
+  - "8"
+before_install:
+  - git clone --branch=develop https://github.com/unitejs/framework.git unitejs/framework
+  - cd unitejs/framework
+  - npm link
+  - cd ../../
+  - git clone --branch=develop https://github.com/unitejs/cli-core.git unitejs/cli-core
+  - cd unitejs/cli-core
+  - npm link "unitejs-framework"
+  - npm link
+  - cd ../../
+  - git clone --branch=develop https://github.com/unitejs/engine.git unitejs/engine
+  - cd unitejs/engine
+  - npm link "unitejs-framework"
+  - npm link
+  - cd ../../
+  - git clone --branch=develop https://github.com/unitejs/cli.git unitejs/cli
+  - cd unitejs/cli
+  - npm link "unitejs-framework" "unitejs-cli-core" "unitejs-engine"
+  - cd ../../
+  - npm install -g gulp
+  - npm install -g cordova
+  - node unitejs/cli/bin/unite configure --packageName=vanilla-typescript --title="Vanilla TypeScript" --profile=VanillaTypeScript --outputDirectory=./app
+  - node unitejs/cli/bin/unite generate --type=class --name=MyClass --outputDirectory=./app
+  - node unitejs/cli/bin/unite generate --type=enum --name=MyEnum --outputDirectory=./app
+  - node unitejs/cli/bin/unite generate --type=interface --name=MyInterface --outputDirectory=./app
+  - node unitejs/cli/bin/unite platform --operation=add --platformName=Cordova --outputDirectory=./app
+  - node unitejs/cli/bin/unite platform --operation=add --platformName=Docker --outputDirectory=./app
+  - node unitejs/cli/bin/unite platform --operation=add --platformName=Electron --outputDirectory=./app
+  - cd ./app/www
+install:
+  - npm install
+script: 
+  - gulp build || travis_terminate 1
+  - gulp theme-build || travis_terminate 1
+  - gulp unit || travis_terminate 1
+  - gulp e2e-install --drivers=chrome || travis_terminate 1
+  - gulp e2e || travis_terminate 1
+  - gulp build --buildConfiguration=prod || travis_terminate 1
+  - gulp e2e || travis_terminate 1
+  - gulp doc-build || travis_terminate 1
+  - gulp platform-web-package --buildConfiguration=prod || travis_terminate 1
+  - gulp platform-electron-dev || travis_terminate 1
+  - gulp platform-electron-package --buildConfiguration=prod || travis_terminate 1
+  - gulp platform-docker-package --buildConfiguration=prod || travis_terminate 1
+  - gulp platform-cordova-dev --buildConfiguration=prod || travis_terminate 1
+  - gulp platform-cordova-theme --buildConfiguration=prod || travis_terminate 1
+cache:
+  directories:
+  - ./app/www/node_modules
